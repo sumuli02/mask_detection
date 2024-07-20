@@ -1,0 +1,107 @@
+number 6
+[368, 472, 770, 313, 196, 467, 357, 698, 135, 460]
+62851.91804218292
+
+
+
+### Result 1
+This is the guess for the mask: [321, 609, 328, 613, 488, 659, 407, 592, 453, 114]
+  message: Optimization terminated successfully.
+  success: True
+   status: 0
+      fun: 93290.10554122925
+        x: [ 3.210e+02  6.090e+02  3.280e+02  6.130e+02  4.880e+02
+             6.590e+02  4.070e+02  5.920e+02  4.530e+02  1.140e+02]
+      nit: 0
+      jac: [ 0.000e+00  0.000e+00  0.000e+00  0.000e+00  0.000e+00
+             0.000e+00  0.000e+00  0.000e+00  0.000e+00  0.000e+00]
+ hess_inv: [[1 0 ... 0 0]
+            [0 1 ... 0 0]
+            ...
+            [0 0 ... 1 0]
+            [0 0 ... 0 1]]
+     nfev: 11
+     njev: 1
+
+Process finished with exit code 0
+
+
+###### Result 2
+
+This is the guess for the mask: [766, 560, 530, 729, 118, 315, 235, 219, 291, 335]
+  message: Optimization terminated successfully.
+  success: True
+   status: 0
+      fun: 0.11293940467294306
+        x: [ 7.660e+02  5.600e+02  5.300e+02  7.290e+02  1.180e+02
+             3.150e+02  2.350e+02  2.190e+02  2.910e+02  3.350e+02]
+      nit: 0
+      jac: [ 0.000e+00  0.000e+00  0.000e+00  0.000e+00  0.000e+00
+             0.000e+00  0.000e+00  0.000e+00  0.000e+00  0.000e+00]
+ hess_inv: [[1 0 ... 0 0]
+            [0 1 ... 0 0]
+            ...
+            [0 0 ... 1 0]
+            [0 0 ... 0 1]]
+     nfev: 11
+     njev: 1
+
+Process finished with exit code 0
+
+
+### Result 3
+number of selected label (label is 7):
+224
+This is the guess for the mask: [16, 477, 41, 704, 752, 745, 39, 477, 410, 410]
+  message: Optimization terminated successfully.
+  success: True
+   status: 0
+      fun: 5871
+        x: [ 1.600e+01  4.770e+02  4.100e+01  7.040e+02  7.520e+02
+             7.450e+02  3.900e+01  4.770e+02  4.100e+02  4.100e+02]
+      nit: 0
+      jac: [ 0.000e+00  0.000e+00  0.000e+00  0.000e+00  0.000e+00
+             0.000e+00  0.000e+00  0.000e+00  0.000e+00  0.000e+00]
+ hess_inv: [[1 0 ... 0 0]
+            [0 1 ... 0 0]
+            ...
+            [0 0 ... 1 0]
+            [0 0 ... 0 1]]
+     nfev: 11
+     njev: 1
+
+Process finished with exit code 0
+
+
+###### Result 4
+This is the guess for the mask: [321, 625, 142, 289, 210, 496, 440, 509, 85, 657]
+                    message: ['requested number of basinhopping iterations completed successfully']
+                    success: True
+                        fun: 57
+                          x: [ 3.599e+02  6.452e+02  1.547e+02  2.729e+02
+                               2.031e+02  5.167e+02  4.614e+02  5.088e+02
+                               9.040e+01  6.598e+02]
+                        nit: 100
+      minimization_failures: 0
+                       nfev: 1111
+                       njev: 101
+ lowest_optimization_result:  message: Optimization terminated successfully.
+                              success: True
+                               status: 0
+                                  fun: 57
+                                    x: [ 3.599e+02  6.452e+02  1.547e+02
+                                         2.729e+02  2.031e+02  5.167e+02
+                                         4.614e+02  5.088e+02  9.040e+01
+                                         6.598e+02]
+                                  nit: 0
+                                  jac: [ 0.000e+00  0.000e+00  0.000e+00
+                                         0.000e+00  0.000e+00  0.000e+00
+                                         0.000e+00  0.000e+00  0.000e+00
+                                         0.000e+00]
+                             hess_inv: [[1 0 ... 0 0]
+                                        [0 1 ... 0 0]
+                                        ...
+                                        [0 0 ... 1 0]
+                                        [0 0 ... 0 1]]
+                                 nfev: 11
+                                 njev: 1
