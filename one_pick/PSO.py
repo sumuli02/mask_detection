@@ -22,10 +22,13 @@ number, contrast = 4, 6
 class PSO():
     def __init__(self, DEBUG=1):
         self.DEBUG = DEBUG
+        '''
         with open("../tools/peaks.json", "r") as f:
             self.peak = json.load(f)
             if self.DEBUG:
                 print(f"peak count : {len(self.peak)}")
+        '''
+        self.peak = list(np.arange(1600,3000))
         self.loaded_model = tf.keras.models.load_model("../tools/pretrained_model/model-BOHB-MAE.keras")
 
     def count_peak_p(self, features, masklist, predictions):
@@ -42,13 +45,18 @@ class PSO():
                 if i >= 28 * 28:
                     i -= 28 * 28
                 i = int(i)
-                feature[i // 28][i % 28] = 255
+                number_feature[i // 28][i % 28] = 255
             prediction = self.loaded_model.predict(number_feature.reshape(1, 28, 28, 1), verbose=0).reshape(64, 64)
-            prediction = prediction.flatten() / 100
+            prediction = prediction / 100
+            prediction = prediction.flatten()
             prediction = np.array(sp.special.softmax(prediction))[self.peak]
             for i, n in enumerate(prediction):
                 if n > 0.01:
                     predictions[i] += 1
+        '''
+        plt.imshow(feature)
+        plt.show()
+        '''
         return predictions
 
     def count_peak_m(self, features, masklist, predictions):
@@ -104,16 +112,14 @@ class PSO():
                   f"Class {number} : {len(number_features)}\n  "
                   f"Class {contrast} : {len(contrast_features)}")
 
-        spectral_data_list = []
 
         ## training part
         def start_training(masklist):
-            global spectral_data_list
             masklist = self.mask_format(masklist)
             predictions = np.zeros(len(self.peak))
 
-            self.count_peak_p(number_features, masklist,predictions)
-            self.count_peak_m(contrast_features, masklist,predictions)
+            predictions = self.count_peak_p(number_features, masklist, predictions)
+            predictions = self.count_peak_m(contrast_features, masklist, predictions)
             if self.DEBUG:
                 print(time.ctime())
             result = -max([-min(predictions), max(predictions)])
@@ -121,6 +127,11 @@ class PSO():
 
 
         def start_training_array(guess):
+            '''
+            PySwarm gives array of variables hence this function needs to make such loop
+            :param guess: array, mask
+            :return: array, loss functions
+            '''
             l = []
             if len(guess) == 784:
                 return start_training(guess)
@@ -154,18 +165,33 @@ class PSO():
         print(f"Total number of mask pixels : {sum(binary_mask)}")
 
         with open(f"PSO_result/{number}vs{contrast}_{time.ctime()}.json", "w") as f:
-            json.dump({"cost": cost, "result": self.mask_format(binary_mask)}, f)
-        return binary_mask
+            json.dump({"train_size": len(number_features),"cost": cost, "result": self.mask_format(binary_mask)}, f)
+        return self.mask_format(binary_mask)
 
-    def test(self, numbers, datas, binary_mask):
-        masklist = self.mask_format(binary_mask)
+    def test(self, numbers, datas, binary_mask, is_binary_mask = False):
+        '''
+        For testing the mask
+        :param numbers: array[int,int]=[number, contrast]
+        :param datas: array[data,data], MNIST data
+        :param binary_mask: array, binary/integer mask array
+        :param is_binary_mask: bool, default true,
+        :return: int, loss function result
+        '''
+        if is_binary_mask:
+            # transform binary mask into integer mask
+            masklist = self.mask_format(binary_mask)
+        else:
+            # function input is integer mask, so just use it
+            masklist = binary_mask
+
         predictions = np.zeros(len(self.peak))
 
-        self.count_peak_p(datas[0], masklist,predictions)
+        predictions = self.count_peak_p(datas[0], masklist,predictions)
         pre = predictions.copy()
-        self.count_peak_m(datas[1], masklist,predictions)
+        print(pre)
+        predictions = self.count_peak_m(datas[1], masklist,predictions)
+        print(predictions)
         aft = -predictions + pre
-
         maxi = max(predictions)
         mini = -min(predictions)
         if (maxi < mini):
@@ -173,12 +199,16 @@ class PSO():
         else:
             index = np.argmax(predictions)
 
-        print(f'Test Result (cout, total) {numbers[0]}vs{numbers[1]}')
-        print(f'{pre[index]} , {len(datas[0])}')
-        print(f'{aft[index]} , {len(datas[1])}')
+        print(f'Test Result (count, total) {numbers[0]}vs{numbers[1]}')
+        print(f'({pre[index]} , {len(datas[0])}) vs ({aft[index]} , {len(datas[1])})')
         print(f'{index} index')
+        r1 = pre[index]/len(datas[0])
+        r2 = aft[index]/len(datas[1])
+        # false positive + false negative
+        fp_fn = 1-max([r1,r2])+min([r1,r2])
+        print(f"False positive:{1-max([r1,r2])}")
+        print(f"False negative:{min([r1,r2])}\n\n")
         if self.DEBUG:
             print(time.ctime())
         result = -max([-min(predictions), max(predictions)])
-        return result
-
+        return [result, fp_fn]
