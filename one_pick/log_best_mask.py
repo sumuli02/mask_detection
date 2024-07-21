@@ -44,12 +44,16 @@ _, fp_fn_no_mask = pso.test([number,contrast], [data1, data2], [], is_binary_mas
 print(f"This is no mask result(newly calculated): {fp_fn_no_mask}")
 
 
-with open("no_mask_result.json", "r") as f:
-    no_mask = json.load(f)
-no_mask = no_mask["result"][contrast][number]
+# use if no_mask_result.json is ready
+if os.path.isfile("no_mask_result.json"):
+    with open("no_mask_result.json", "r") as f:
+        no_mask = json.load(f)
+    no_mask = no_mask["result"][contrast][number]
+else:
+    no_mask = fp_fn_no_mask
 
-print(f"This is with mask result: {fp_fn}")
 print(f"This is no mask result: {no_mask}")
+print(f"This is with mask result: {fp_fn}")
 
 # Deciding the best fp_fn/Saving the result
 if no_mask > fp_fn:
