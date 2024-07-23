@@ -1,10 +1,7 @@
 '''
+One pick
 Optimisation using genetic algorithm
-
-To Do:
-Make this into class like pso
 '''
-
 import random
 
 from sklearn import datasets
@@ -16,100 +13,156 @@ import scipy as sp
 import skimage.measure
 import pygad
 import time
+import json
 
-number = 2
-contrast = 8
-data_num = 1000
-data = datasets.fetch_openml('mnist_784', version=1, as_frame=False,
-                                 parser='auto', return_X_y=True)
+class GenAlg():
+    def __init__(self, DEBUG=1):
+        self.DEBUG = DEBUG
+        self.peak = list(np.arange(1600, 3000))
+        self.loaded_model = tf.keras.models.load_model("../tools/pretrained_model/model-BOHB-MAE.keras")
 
-selected_features = np.array(data[0][:data_num])
-selected_features = [cv2.threshold(i.astype(np.uint8), 127, 255, cv2.THRESH_BINARY)[1].reshape(28, 28,1) for i in selected_features]
-
-selected_label = datasets.fetch_openml('mnist_784', version=1, as_frame=False,
-                                      parser='auto', return_X_y = True)
-selected_label = np.array([int(i) for i in selected_label[1]][:data_num])
-
-filter = np.where(selected_label == number)
-number_label, number_features = list(selected_label[filter]), list(np.array(selected_features)[filter])
-
-filter = np.where(selected_label == contrast)
-contrast_label, contrast_features = list(selected_label[filter]), list(np.array(selected_features)[filter])
-
-print(f"number of selected label (label is {number}): ")
-print(len(number_features))
-
-dir_folder = "/Users/emoon/PycharmProjects/BscTest/pretrained_model"
-loaded_model = tf.keras.models.load_model(dir_folder + "/model-BOHB-MAE.keras")
-
-spectral_data_list = []
-## training part
-def start_training(ga_instance, masklist, solution_idx):
-    global spectral_data_list
-    predictions = np.zeros(1400)
-    result_temp = 0
-
-    for number_feature in number_features:
-        number_feature = np.array(number_feature).reshape(28, 28)
-        for i in masklist:
-            i *= 200
-            i = int(i)
-            while i >= 28*28:
-                i -= 28*28
-            while i < 0:
-                i += 28*28
-            number_feature[i//28][i%28] = 255
-        prediction = loaded_model.predict(number_feature.reshape(1,28,28,1), verbose=0).reshape(64, 64)
-        prediction = prediction / 100
-        prediction = prediction.flatten()
-        prediction = sp.special.softmax(prediction)[1600:3000]
-        for i, n in enumerate(prediction):
-            if n > 0.01:
-                predictions[i] += 1
-
-    for contrast_feature in contrast_features:
-        number_feature = np.array(contrast_feature).reshape(28, 28)
-        for i in masklist:
+    def mask_gen(self, mg):
+        m =[]
+        for i in mg:
             i *= 200
             i = int(i)
             while i >= 28 * 28:
                 i -= 28 * 28
             while i < 0:
                 i += 28 * 28
-            number_feature[i//28][i%28] = 255
-        prediction = loaded_model.predict(number_feature.reshape(1,28,28,1), verbose=0).reshape(64, 64)
-        prediction = prediction / 100
-        prediction = prediction.flatten()
-        prediction = sp.special.softmax(prediction)[1600:3000]
-        for i, n in enumerate(prediction):
-            if n > 0.01:
-                predictions[i] -= 1
-    print(predictions)
-    max(predictions)
-    print(time.ctime())
-    result = max([max(predictions), -min(predictions)])
-    return result
+            m.append(i)
+        return m
 
-guess = [random.randint(0,784) for i in range(50)]
-num_generations = 15
-num_parents_mating = 3
+    def count_peak_p(self, features, masklist, predictions):
+        '''
+        count peak by +1
+        :param features:
+        :param masklist:
+        :param predictions:
+        :return:
+        '''
+        for feature in features:
+            number_feature = np.array(feature).reshape(28, 28)
+            for i in masklist:
+                number_feature[i // 28][i % 28] = 255
+            prediction = self.loaded_model.predict(number_feature.reshape(1, 28, 28, 1), verbose=0).reshape(64, 64)
+            prediction = prediction.flatten() / 100
+            prediction = np.array(sp.special.softmax(prediction))[self.peak]
+            for i, n in enumerate(prediction):
+                if n > 0.01:
+                    predictions[i] += 1
+        return predictions
 
-sol_per_pop = 5
-num_genes = len(guess)
+    def count_peak_m(self, features, masklist, predictions):
+        '''
+        count peak by -1
+        :param features:
+        :param masklist:
+        :param predictions:
+        :return:
+        '''
+        for feature in features:
+            number_feature = np.array(feature).reshape(28, 28)
+            for i in masklist:
+                number_feature[i // 28][i % 28] = 255
+            prediction = self.loaded_model.predict(number_feature.reshape(1, 28, 28, 1), verbose=0).reshape(64, 64)
+            prediction = prediction.flatten() / 100
+            prediction = np.array(sp.special.softmax(prediction))[self.peak]
+            for i, n in enumerate(prediction):
+                if n > 0.01:
+                    predictions[i] -= 1
+        return predictions
 
-ga_instance = pygad.GA(num_generations=num_generations,
-                       num_parents_mating=num_parents_mating,
-                       sol_per_pop=sol_per_pop,
-                       num_genes=num_genes,
-                       fitness_func=start_training,
-                       parent_selection_type='sss',
-                       crossover_type='single_point',
-                       keep_parents=1)
+    def run(self, numbers, datas, pixel_num=50,  num_generations=15, num_parents_mating=3, sol_per_pop=5):
+        '''
+        Runs GenAlg
+        :param numbers: [number, contrast], both should be int
+        :param datas: [data_number, data_contrast], MNIST image data for both classes
+        :return:
+        '''
+        number, contrast = numbers[0], numbers[1]
+        number_features, contrast_features = datas[0], datas[1]
 
-ga_instance.run()
+        if self.DEBUG:
+            print(f"Two Classes Compared: {number} and {contrast}")
+            print(f"Training set: \n  "
+                  f"Class {number} : {len(number_features)}\n  "
+                  f"Class {contrast} : {len(contrast_features)}")
 
-ga_instance.plot_fitness(label=['Obj 1'])
+        ## training part
+        def start_training(ga_instance, masklist, solution_idx):
+            predictions = np.zeros(len(self.peak))
+            masklist = self.mask_gen(masklist)
 
-solution, solution_fitness, solution_idx = ga_instance.best_solution(ga_instance.last_generation_fitness)
-print(f"Parameters of the best solution : {solution}")
-print(f"Fitness value of the best solution = {solution_fitness}")
+            predictions = self.count_peak_p(number_features, masklist, predictions)
+            predictions = self.count_peak_m(contrast_features, masklist, predictions)
+
+            if self.DEBUG:
+                print(time.ctime())
+            result = max([-min(predictions), max(predictions)])
+            return result
+
+        # GenAlg training
+        num_genes = pixel_num
+        ga_instance = pygad.GA(num_generations=num_generations,
+                               num_parents_mating=num_parents_mating,
+                               sol_per_pop=sol_per_pop,
+                               num_genes=num_genes,
+                               fitness_func=start_training,
+                               parent_selection_type='sss',
+                               crossover_type='single_point',
+                               keep_parents=1)
+
+        ga_instance.run()
+
+        ga_instance.plot_fitness(label=['Fitting'])
+
+        solution, solution_fitness, solution_idx = ga_instance.best_solution(ga_instance.last_generation_fitness)
+
+        # Print end result
+        print(f"Final Mask : {list(solution)}")
+        print(f"Loss of Final Mask : {solution_fitness}")
+        print(f"Loss is better if closer to {max(len(datas[0]), len(datas[1]))}")
+        print(f"Total number of mask pixels : {pixel_num}")
+
+        with open(f"Gen_result/{number}vs{contrast}_{time.ctime()}.json", "w") as f:
+            json.dump({"train_size": len(number_features), "cost": solution_fitness, "result": self.mask_gen(solution)}, f)
+        return self.mask_gen(solution)
+
+    def test(self, numbers, datas, masklist):
+        '''
+        For testing the mask
+        :param numbers: array[int,int]=[number, contrast]
+        :param datas: array[data,data], MNIST data
+        :param binary_mask: array, binary/integer mask array
+        :param is_binary_mask: bool, default true,
+        :return: int, loss function result
+        '''
+        predictions = np.zeros(len(self.peak))
+
+        predictions = self.count_peak_p(datas[0], masklist,predictions)
+        pre = predictions.copy()
+        print(pre)
+        predictions = self.count_peak_m(datas[1], masklist,predictions)
+        print(predictions)
+        aft = -predictions + pre
+        maxi = max(predictions)
+        mini = -min(predictions)
+        if (maxi < mini):
+            index = np.argmin(predictions)
+        else:
+            index = np.argmax(predictions)
+
+        print(f'Test Result (count, total) {numbers[0]}vs{numbers[1]}')
+        print(f'({pre[index]} , {len(datas[0])}) vs ({aft[index]} , {len(datas[1])})')
+        print(f'{index} index')
+        r1 = pre[index]/len(datas[0])
+        r2 = aft[index]/len(datas[1])
+        # false positive + false negative
+        fp_fn = 1-max([r1,r2])+min([r1,r2])
+        print(f"False positive:{1-max([r1,r2])}")
+        print(f"False negative:{min([r1,r2])}\n\n")
+        if self.DEBUG:
+            print(time.ctime())
+        result = max([-min(predictions), max(predictions)])
+        return [result, fp_fn]
